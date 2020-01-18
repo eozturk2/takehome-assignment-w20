@@ -57,10 +57,62 @@ def get_all_shows():
 
 @app.route("/shows/<id>", methods=['DELETE'])
 def delete_show(id):
+    if not id.isdigit(): #type safety
+        return create_response(status=404, message="No show with this id exists")
     if db.getById('shows', int(id)) is None:
         return create_response(status=404, message="No show with this id exists")
     db.deleteById('shows', int(id))
     return create_response(message="Show deleted")
+
+@app.route("/shows/<id>", methods=['GET'])
+def get_show(id):
+    if not id.isdigit():
+        return create_response(status=404, message="No show with this id exists")
+    if db.getById('shows', int(id)) is None:
+        return create_response(status=404, message="No show with this id exists")
+    return create_response(result= db.getById('shows', int(id)))
+
+@app.route("/shows", methods=['POST'])
+def make_show():
+    # could have just used request.args, felt safer checking if we're actually getting JSON
+    if request.json is None:
+        return create_response(status=422, message="The request is not in proper JSON format.")
+    if 'name' not in request.json:
+        return create_response(status=422, message="There is no name provided.")
+    if 'episodes_seen' not in request.json:
+        return create_response(status=422, message="There is no episode count provided.")
+    if len(request.json)>2:
+        return create_response(status=422, message="The request is too long.")
+
+    body = {
+        'name':request.json['name'],
+        'episodes_seen':request.json['episodes_seen'],
+        'id':0
+    }
+    result = db.create('shows', body)
+    return create_response({"result": db.getById('shows',int(result["id"]))}, status=201)
+
+@app.route("/shows/<id>",methods=["PUT"])
+def update_show(id):
+    if request.json is None:
+        return create_response(status=422, message="The request is not in proper JSON format.")
+    if len(request.json)>2:
+        return create_response(status=422, message="The request is too long.")
+    if not id.isdigit(): 
+        return create_response(status=404, message="No show with this id exists")
+    if db.getById('shows', int(id)) is None:
+        return create_response(status=404, message="No show with this id exists")
+
+    change = dict()
+    if 'name' in request.json:
+        change.update({'name':request.json['name']})
+    if 'episodes_seen' in request.json:
+        change.update({'episodes_seen':request.json['episodes_seen']})
+    db.updateById('shows',int(id),change)
+    return create_response({"result": db.getById('shows', int(id))}, status=201)
+
+
+
 
 
 # TODO: Implement the rest of the API here!
